@@ -1,0 +1,25 @@
+{
+  "name": "job-tracker-server",
+  "version": "1.0.0",
+  "description": "Job Tracker API — Node + Express + PostgreSQL + Redis + AI",
+  "main": "server.js",
+  "scripts": {
+    "dev": "nodemon server.js",
+    "start": "node server.js"
+  },
+  "author": "Your Name",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "helmet": "^8.1.0",
+    "prisma": "^5.22.0",
+    "redis": "^5.12.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "nodemon": "^3.1.14"
+  }
+}
