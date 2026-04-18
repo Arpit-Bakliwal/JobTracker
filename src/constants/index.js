@@ -1,3 +1,4 @@
+const CACHE_TTL = 300;
 const HTTP_STATUS = {
   OK: 200,
   CREATED: 201,
@@ -57,4 +58,4 @@ const MESSAGES = {
   }
 };
 
-module.exports = { HTTP_STATUS, MESSAGES };
+module.exports = { HTTP_STATUS, MESSAGES, CACHE_TTL };

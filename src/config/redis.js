@@ -34,7 +34,58 @@ const connectRedis = async () => {
         await redisClient.connect();
     } catch (error) {
         console.error('Failed to connect to Redis:', error.message);
+        process.exit(1);
     }
 };
 
-module.exports = { redisClient, connectRedis };
+// Helper - Get Cached value
+const getCache = async (key) => {
+    try {
+        const value = await redisClient.get(key);
+        return value ? JSON.parse(value) : null;
+    } catch (error) {
+        console.error('Error getting cache from Redis:', error.message);
+        return null;
+    }
+};
+
+// Helper - Set Cache with expiration (in seconds) = TTL
+const setCache = async (key, value, ttl = 300) => {
+    try {
+        await redisClient.setEx(key, ttl, JSON.stringify(value));
+    } catch (error) {
+        console.error('Error setting cache in Redis:', error.message);
+    }
+};
+
+// Helper - Delete Cache
+const deleteCache = async (key) => {
+    try {
+        await redisClient.del(key);
+    } catch (error) {
+        console.error('Error deleting cache from Redis:', error.message);
+    }
+};
+
+// Helper - Delete All Keys Matching a Pattern
+// Used to clear all cached queries for a user
+const deleteCacheByPattern = async (pattern) => {
+    try {
+        const keys = await redisClient.keys(pattern);
+        if (keys.length > 0) {
+            await redisClient.del(keys);
+            console.log(`Deleted ${keys.length} cache entries matching pattern: ${pattern}`);
+        }
+    } catch (error) {
+        console.error('Error deleting cache by pattern from Redis:', error.message);
+    }
+};
+
+module.exports = { 
+    redisClient, 
+    connectRedis, 
+    getCache, 
+    setCache, 
+    deleteCache, 
+    deleteCacheByPattern, 
+};
