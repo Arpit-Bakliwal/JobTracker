@@ -1,4 +1,8 @@
 const router = require('express').Router();
+const authRoutes = require('./auth.routes');
+
+// Mount auth routes
+router.use('/auth', authRoutes);
 
 // We'll add auth, job, ai routes here in the future
 // For now just add base route to verify everything is working
