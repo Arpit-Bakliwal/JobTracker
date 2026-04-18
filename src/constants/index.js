@@ -1,4 +1,9 @@
 const CACHE_TTL = 300;
+
+const ROLES = {
+  USER: 'USER',
+  ADMIN: 'ADMIN',
+};
 const HTTP_STATUS = {
   OK: 200,
   CREATED: 201,
@@ -54,10 +59,26 @@ const MESSAGES = {
     RATE_LIMIT_EXCEEDED: 'Too many AI requests, please try again later after 1 hour',
   },
 
+  // Admin
+  ADMIN: {
+    USERS_FETCHED: 'Users fetched successfully',
+    USER_FETCHED: 'User fetched successfully',
+    USER_DELETED: 'User deleted successfully',
+    USER_ROLE_UPDATED: 'User role updated successfully',
+    FORBIDDEN: 'Admin access required',
+    CHANGE_OWN_ROLE_FORBIDDEN: 'Admins cannot change their own role',
+    DELETE_SELF_FORBIDDEN: 'Admins cannot delete their own account',
+  },
+
+  // Role
+  ROLE: {
+    INVALID: 'Invalid role specified',
+  },
+
   // Redis
   REDIS: {
     MAX_RECONNECTION_ATTEMPTS: 'Max reconnection attempts reached. Giving up.',
   }
 };
 
-module.exports = { HTTP_STATUS, MESSAGES, CACHE_TTL };
+module.exports = { HTTP_STATUS, MESSAGES, CACHE_TTL, ROLES };

@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const authenticate = require('../middleware/auth.middleware');
+const { authenticate } = require('../middleware/auth.middleware');
 const validate = require('../middleware/validate.middleware');
 const { createJobSchema, updateJobSchema } = require('../validations/job.validation');
 const {

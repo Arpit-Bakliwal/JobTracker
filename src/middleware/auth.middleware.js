@@ -29,6 +29,7 @@ const authenticate = asyncHandler(async (req, res, next) => {
             id: true,
             name: true,
             email: true,
+            role: true,
         }, 
     });
 
@@ -43,4 +44,16 @@ const authenticate = asyncHandler(async (req, res, next) => {
     next();
 });
 
-module.exports = authenticate;
+// Role based authorization factory function
+const authorize = (...roles) => {
+    return (req, res, next) => {
+        if(!roles.includes(req.user.role)) {
+            const error = new Error(MESSAGES.ADMIN.FORBIDDEN);
+            error.status = HTTP_STATUS.FORBIDDEN;
+            throw error;
+        }
+        next();
+    }
+};
+
+module.exports = { authenticate, authorize };
