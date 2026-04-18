@@ -34,6 +34,7 @@ const MESSAGES = {
     TOKEN_MISSING: 'Not authorized, no token',
     TOKEN_INVALID: 'Not authorized, token is invalid',
     USER_NOT_FOUND: 'User not found',
+    RATE_LIMIT_EXCEEDED: 'Too many auth attempts, please try again later after 15 minutes',
   },
 
   // Jobs
@@ -50,6 +51,7 @@ const MESSAGES = {
   AI: {
     ANALYSIS_COMPLETE: 'Job analysis complete',
     QUESTIONS_GENERATED: 'Interview questions generated',
+    RATE_LIMIT_EXCEEDED: 'Too many AI requests, please try again later after 1 hour',
   },
 
   // Redis

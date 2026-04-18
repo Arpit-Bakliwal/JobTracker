@@ -3,6 +3,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const routes = require('./routes');
 const { errorMiddleware } = require('./middleware/error.middleware');
+const { apiLimiter } = require('./middleware/rateLimit.middleware');
 
 const app = express();
 
@@ -20,6 +21,9 @@ app.use(cors({
 // Body parser middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Apply API rate limiter to all API routes
+app.use('/api/', apiLimiter);
 
 // Health check route
 app.get('/health', (req, res) => {
