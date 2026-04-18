@@ -1,6 +1,6 @@
-const { verifyToken } = require('../utils/jwt.util');
+const { verifyToken } = require('../utils/jwt');
 const prisma = require('../config/database');
-const asyncHandler = require('../utils/asyncHandler');
+const { asyncHandler } = require('../utils/asyncHandler');
 const { HTTP_STATUS, MESSAGES } = require('../constants');
 
 const authenticate = asyncHandler(async (req, res, next) => {
