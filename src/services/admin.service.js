@@ -1,5 +1,7 @@
 const prisma = require("../config/database");
 const { HTTP_STATUS, MESSAGES, ROLES } = require("../constants");
+const getEmailQueue = require('../queues/email.queue');
+const { EMAIL_JOBS } = require('../workers/email.worker');
 
 const getAllUsers = async (query = {}) => {
     const page = parseInt(query.page) || 1;
@@ -130,6 +132,9 @@ const deleteUser = async (userId, adminId) => {
         error.status = HTTP_STATUS.NOT_FOUND;
         throw error;
     }
+
+    // Queue account deletion email before deleting the user
+    await getEmailQueue().add(EMAIL_JOBS.ACCOUNT_DELETION, { user });
 
     return await prisma.user.delete({
         where: { id: userId },

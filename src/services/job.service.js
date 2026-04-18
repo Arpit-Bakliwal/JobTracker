@@ -1,6 +1,8 @@
 const prisma = require("../config/database");
 const { HTTP_STATUS, MESSAGES, CACHE_TTL } = require("../constants");
 const { getCache, setCache, deleteCacheByPattern } = require("../config/redis");
+const getEmailQueue = require('../queues/email.queue');
+const { EMAIL_JOBS } = require('../workers/email.worker');
 
 // Helper - Generate cache key for jobs list based on userId and query parameters
 const buildCacheKeyForJobs = (userId, query={}) => {
@@ -95,14 +97,22 @@ const getJobById = async (jobId, userId) => {
 };
 
 const updateJob = async (jobId, data, userId) => {
-    const job = await getJobById(jobId, userId);
+    const existingJob = await getJobById(jobId, userId);
+
     const updatedJob = await prisma.job.update({
-        where: { id: job.id },
+        where: { id: jobId },
         data: {
             ...data,
             appliedAt: data.appliedAt ? new Date(data.appliedAt) : undefined,
         },
     });
+
+    // Send job status update email if status has changed 
+    if (data.status && data.status !== existingJob.status) {
+        const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true, email: true } });
+
+        await getEmailQueue().add(EMAIL_JOBS.JOB_STATUS, { user, updateJob });
+    }
 
     // Invalidate related cache - Jobs list for the user (since a job is updated)
     await deleteCacheByPattern(`jobs:${userId}:*`);

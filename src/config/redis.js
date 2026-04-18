@@ -1,6 +1,13 @@
 const redis = require('redis');
-const { REDIS_URL, NODE_ENV } = require('./index');
+const { REDIS_URL, REDIS_HOST, REDIS_PORT, NODE_ENV } = require('./index');
 const { MESSAGES } = require('../constants');
+
+// Shared BullMQ connection configuration
+// BullMQ needs host and port separately - not url
+const bullMQConnection = {
+    host: REDIS_HOST,
+    port: REDIS_PORT,
+};
 
 const redisClient = redis.createClient({
     url: REDIS_URL,
@@ -96,6 +103,7 @@ const deleteCacheByPattern = async (pattern) => {
 module.exports = { 
     redisClient, 
     connectRedis, 
+    bullMQConnection,
     getCache, 
     setCache, 
     deleteCache, 

@@ -7,6 +7,9 @@ const config = {
 
     // Redis configuration
     REDIS_URL: process.env.REDIS_URL,
+    REDIS_HOST: process.env.REDIS_HOST || 'localhost',
+    REDIS_PORT: process.env.REDIS_PORT || 6381,
+
 
     // JWT configuration
     JWT_SECRET: process.env.JWT_SECRET,
@@ -14,6 +17,13 @@ const config = {
 
     // OpenAI configuration
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+
+    // Email configuration
+    SMTP_HOST: process.env.EMAIL_HOST,
+    SMTP_PORT: process.env.EMAIL_PORT,
+    SMTP_USER: process.env.SMTP_USER,
+    SMTP_PASS: process.env.SMTP_PASS,
+    EMAIL_FROM: process.env.EMAIL_FROM,
 };
 
 // validate critical config on startup

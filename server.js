@@ -3,6 +3,9 @@ const { connectRedis, redisClient } = require('./src/config/redis');
 const app = require('./src/app');
 const { PORT } = require('./src/config');
 const prisma = require('./src/config/database');
+const { verifyEmailConnection } = require("./src/services/email.service");
+const { initEmailWorker, getEmailWorker } = require('./src/workers/email.worker');
+const { startScheduler } = require('./src/queues/scheduler');
 
 const startServer = async () => {
     const server = app.listen(PORT, () => {
@@ -19,6 +22,7 @@ const startServer = async () => {
         process.exit(1);
     });
 
+    // Connect to the database
     try {
         await prisma.$connect();
         console.log('✅ Connected to the database successfully');
@@ -29,10 +33,23 @@ const startServer = async () => {
 
     // Connect to Redis
     await connectRedis();
+    
+    // Verify email transporter configuration
+    await verifyEmailConnection();
+
+    // Initialize email worker
+    initEmailWorker();
+
+    // Start the scheduler for periodic tasks
+    startScheduler();
 
     // Graceful Shutdown
     process.on('SIGINT', async () => {
         console.log("Shutting down gracefully...");
+        const emailWorker = getEmailWorker();
+        if (emailWorker) {
+            await emailWorker.close(); // Stop accepting new jobs and finish processing current ones
+        }
         await prisma.$disconnect();
         await redisClient.quit();
         server.close(() => {
@@ -43,6 +60,10 @@ const startServer = async () => {
 
     process.on('SIGTERM', async () => {
         console.log("Shutting down gracefully...");
+        const emailWorker = getEmailWorker();
+        if (emailWorker) {
+            await emailWorker.close(); // Stop accepting new jobs and finish processing current ones
+        }
         await prisma.$disconnect();
         await redisClient.quit();
         server.close(() => {

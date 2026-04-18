@@ -2,6 +2,8 @@ const bcrypt = require('bcryptjs');
 const prisma = require('../config/database');
 const { generateToken } = require('../utils/jwt');
 const { HTTP_STATUS, MESSAGES } = require('../constants');
+const getEmailQueue = require("../queues/email.queue");
+const { EMAIL_JOBS } = require("../workers/email.worker");
 
 const register = async ({ name, email, password }) => {
     // Check if user already exists
@@ -29,6 +31,9 @@ const register = async ({ name, email, password }) => {
             createdAt: true,
         },
     });
+
+    // Add welcome email job to the queue
+    await getEmailQueue().add(EMAIL_JOBS.WELCOME, { user }, {delay: 1000}); // Send after 1 second
 
     // Generate JWT token
     const token = generateToken({ id: user.id });
