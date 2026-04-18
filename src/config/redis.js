@@ -1,5 +1,5 @@
 const redis = require('redis');
-const { REDIS_URL } = require('./index');
+const { REDIS_URL, NODE_ENV } = require('./index');
 const { MESSAGES } = require('../constants');
 
 const redisClient = redis.createClient({
@@ -71,10 +71,22 @@ const deleteCache = async (key) => {
 // Used to clear all cached queries for a user
 const deleteCacheByPattern = async (pattern) => {
     try {
-        const keys = await redisClient.keys(pattern);
-        if (keys.length > 0) {
-            await redisClient.del(keys);
-            console.log(`Deleted ${keys.length} cache entries matching pattern: ${pattern}`);
+        if (NODE_ENV === "development") {
+            const keys = await redisClient.keys(pattern);
+            if (keys.length > 0) {
+                await redisClient.del(keys);
+                console.log(`Deleted ${keys.length} cache entries matching pattern: ${pattern}`);
+            }
+        } else {
+            // In production, use SCAN to avoid blocking Redis
+            const keys = [];
+            for await (const key of redisClient.scanIterator({ MATCH: pattern })) {
+                keys.push(key);
+            }
+            if (keys.length > 0) {
+                await redisClient.del(keys);
+                console.log(`Deleted ${keys.length} cache entries matching pattern: ${pattern}`);
+            }
         }
     } catch (error) {
         console.error('Error deleting cache by pattern from Redis:', error.message);
