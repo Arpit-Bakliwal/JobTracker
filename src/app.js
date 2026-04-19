@@ -19,7 +19,7 @@ app.use(helmet({
 
 // CORS middleware
 app.use(cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:3005",
+    origin: NODE_ENV === "development" ? "*" : process.env.CLIENT_URL,
     credentials: true,
 }));
 

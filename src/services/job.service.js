@@ -3,6 +3,8 @@ const { HTTP_STATUS, MESSAGES, CACHE_TTL } = require("../constants");
 const { getCache, setCache, deleteCacheByPattern } = require("../config/redis");
 const getEmailQueue = require('../queues/email.queue');
 const { EMAIL_JOBS } = require('../workers/email.worker');
+const { getIO } = require("../config/socket");
+const { SOCKET_EVENTS } = require("../constants/socket.events");
 
 // Helper - Generate cache key for jobs list based on userId and query parameters
 const buildCacheKeyForJobs = (userId, query={}) => {
@@ -112,6 +114,23 @@ const updateJob = async (jobId, data, userId) => {
         const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true, email: true } });
 
         await getEmailQueue().add(EMAIL_JOBS.JOB_STATUS, { user, updateJob });
+
+        // Real time notification to admin
+        try {
+            const io = getIO();
+            io.to('admin').emit(SOCKET_EVENTS.JOB_STATUS_CHANGED,{
+                message: `${user.name} updated job status to ${data.status}`,
+                job: {
+                    id: updateJob.id,
+                    title: updateJob.title,
+                    company: updateJob.company,
+                    status: updatedJob.status,
+                    userId
+                },
+            });
+        } catch (error) {
+            logger.warn('Socket emit failed:', { error: error.message });
+        }
     }
 
     // Invalidate related cache - Jobs list for the user (since a job is updated)

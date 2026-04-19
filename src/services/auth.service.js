@@ -6,6 +6,8 @@ const { HTTP_STATUS, MESSAGES } = require('../constants');
 const getEmailQueue = require("../queues/email.queue");
 const { EMAIL_JOBS } = require("../workers/email.worker");
 const logger = require('../utils/logger');
+const { getIO } = require('../config/socket');
+const { SOCKET_EVENTS } = require('../constants/socket.events');
 
 // Helper - generate secure refresh token
 const generateSecureRefreshToken = () => {
@@ -38,6 +40,21 @@ const register = async ({ name, email, password }) => {
             createdAt: true,
         },
     });
+
+    // Notify admin in real time
+    try {
+        const io = getIO();
+        io.to(`admin`).emit(SOCKET_EVENTS.NEW_USER_REGISTERED, {
+            message: `New user registered: ${name}`,
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+            },
+        });
+    } catch (error) {
+        logger.warn('Socket emit failed:', { error: error.message });
+    }
 
     // Add welcome email job to the queue
     await getEmailQueue().add(EMAIL_JOBS.WELCOME, { user }, {delay: 1000}); // Send after 1 second

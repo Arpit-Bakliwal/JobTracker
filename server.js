@@ -1,4 +1,5 @@
 require('dotenv').config();
+const http = require('http');
 const { connectRedis, redisClient } = require('./src/config/redis');
 const app = require('./src/app');
 const { PORT } = require('./src/config');
@@ -6,15 +7,22 @@ const prisma = require('./src/config/database');
 const { verifyEmailConnection } = require("./src/services/email.service");
 const { initEmailWorker, getEmailWorker } = require('./src/workers/email.worker');
 const { startScheduler } = require('./src/queues/scheduler');
+const { initSocket } = require("./src/config/socket");
 const logger = require('./src/utils/logger');
 
 const startServer = async () => {
-    const server = app.listen(PORT, () => {
+    // Create http server from Express app
+    const httpServer = http.createServer(app);
+
+    // Initialize Socket.io on HTTP server
+    initSocket(httpServer);
+
+    httpServer.listen(PORT, () => {
         logger.info(`🚀 Server is running on port ${PORT}`);
         logger.info(`Environment: ${process.env.NODE_ENV}`);
     });
 
-    server.on('error', (error) => {
+    httpServer.on('error', (error) => {
         if(error.code === 'EADDRINUSE') {
             logger.error(`Port ${PORT} is already in use. Please free the port and try again.`);
         } else {
@@ -53,7 +61,7 @@ const startServer = async () => {
         }
         await prisma.$disconnect();
         await redisClient.quit();
-        server.close(() => {
+        httpServer.close(() => {
             logger.info("Server closed. Goodbye!");
             process.exit(0);
         });
@@ -67,7 +75,7 @@ const startServer = async () => {
         }
         await prisma.$disconnect();
         await redisClient.quit();
-        server.close(() => {
+        httpServer.close(() => {
             logger.info("Server closed. Goodbye!");
             process.exit(0);
         });

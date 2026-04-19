@@ -1,5 +1,7 @@
 const prisma = require("../config/database");
+const { getIO } = require("../config/socket");
 const { HTTP_STATUS, MESSAGES, ROLES } = require("../constants");
+const { SOCKET_EVENTS } = require("../constants/socket.events");
 const getEmailQueue = require('../queues/email.queue');
 const { EMAIL_JOBS } = require('../workers/email.worker');
 
@@ -103,7 +105,7 @@ const updateUserRole = async (userId, newRole, adminId) => {
         throw error;
     }
 
-    return await prisma.user.update({
+    const updatedUser = await prisma.user.update({
         where: { id: userId },
         data: { role: newRole },
         select: {
@@ -113,6 +115,19 @@ const updateUserRole = async (userId, newRole, adminId) => {
             role: true,
         },
     });
+
+    // Notify affected user in real time
+    try {
+        const io = getIO();
+        io.to(`user:${userId}`).emit(SOCKET_EVENTS.ROLE_UPDATED, {
+            message: `Your role has been updated to ${newRole}`,
+            newRole
+        });
+    } catch (error) {
+        logger.warn('Socket emit failed:', { error: error.message });
+    }
+
+    return updatedUser;
 };
 
 const deleteUser = async (userId, adminId) => {
