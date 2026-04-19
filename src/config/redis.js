@@ -1,6 +1,7 @@
 const redis = require('redis');
 const { REDIS_URL, REDIS_HOST, REDIS_PORT, NODE_ENV } = require('./index');
 const { MESSAGES } = require('../constants');
+const logger = require('../utils/logger');
 
 // Shared BullMQ connection configuration
 // BullMQ needs host and port separately - not url
@@ -14,7 +15,7 @@ const redisClient = redis.createClient({
     socket: {
         reconnectStrategy: (retries) => {
             if (retries > 5) {
-                console.error('Redis: Max reconnection attempts reached. Giving up.');
+                logger.error('Redis: Max reconnection attempts reached. Giving up.');
                 return new Error(MESSAGES.REDIS.MAX_RECONNECTION_ATTEMPTS);
             }
 
@@ -25,22 +26,22 @@ const redisClient = redis.createClient({
 });
 
 redisClient.on('connect', () => {
-    console.log('Connected to Redis successfully');
+    logger.info('Connected to Redis successfully');
 });
 
 redisClient.on('error', (err) => {
-    console.error('Redis connection error:', err.message);
+    logger.error('Redis connection error:', err.message);
 });
 
 redisClient.on('reconnecting', (delay, attempt) => {
-    console.log(`Redis reconnecting... Attempt ${attempt}, next attempt in ${delay}ms`);
+    logger.info(`Redis reconnecting... Attempt ${attempt}, next attempt in ${delay}ms`);
 });
 
 const connectRedis = async () => {
     try {
         await redisClient.connect();
     } catch (error) {
-        console.error('Failed to connect to Redis:', error.message);
+        logger.error('Failed to connect to Redis:', error.message);
         process.exit(1);
     }
 };
@@ -51,7 +52,7 @@ const getCache = async (key) => {
         const value = await redisClient.get(key);
         return value ? JSON.parse(value) : null;
     } catch (error) {
-        console.error('Error getting cache from Redis:', error.message);
+        logger.error('Error getting cache from Redis:', error.message);
         return null;
     }
 };
@@ -61,7 +62,7 @@ const setCache = async (key, value, ttl = 300) => {
     try {
         await redisClient.setEx(key, ttl, JSON.stringify(value));
     } catch (error) {
-        console.error('Error setting cache in Redis:', error.message);
+        logger.error('Error setting cache in Redis:', error.message);
     }
 };
 
@@ -70,7 +71,7 @@ const deleteCache = async (key) => {
     try {
         await redisClient.del(key);
     } catch (error) {
-        console.error('Error deleting cache from Redis:', error.message);
+        logger.error('Error deleting cache from Redis:', error.message);
     }
 };
 
@@ -82,7 +83,7 @@ const deleteCacheByPattern = async (pattern) => {
             const keys = await redisClient.keys(pattern);
             if (keys.length > 0) {
                 await redisClient.del(keys);
-                console.log(`Deleted ${keys.length} cache entries matching pattern: ${pattern}`);
+                logger.info(`Deleted ${keys.length} cache entries matching pattern: ${pattern}`);
             }
         } else {
             // In production, use SCAN to avoid blocking Redis
@@ -92,11 +93,11 @@ const deleteCacheByPattern = async (pattern) => {
             }
             if (keys.length > 0) {
                 await redisClient.del(keys);
-                console.log(`Deleted ${keys.length} cache entries matching pattern: ${pattern}`);
+                logger.info(`Deleted ${keys.length} cache entries matching pattern: ${pattern}`);
             }
         }
     } catch (error) {
-        console.error('Error deleting cache by pattern from Redis:', error.message);
+        logger.error('Error deleting cache by pattern from Redis:', error.message);
     }
 };
 
