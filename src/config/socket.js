@@ -26,7 +26,6 @@ const initSocket = (httpServer) => {
                 return next(new Error("Authentication required"));
             }
 
-            logger.info("Token: ", token);
             const decoded = verifyToken(token);
 
             const user = await prisma.user.findUnique({

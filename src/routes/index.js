@@ -3,6 +3,7 @@ const authRoutes = require('./auth.routes');
 const jobRoutes = require('./job.routes');
 const adminRoutes = require('./admin.routes');
 const aiRoutes = require('./ai.routes');
+const fileRoutes = require('./file.routes');
 // const { sendWelcomeEmail } = require('../services/email.service');
 // const { asyncHandler } = require('../utils/asyncHandler');
 
@@ -14,6 +15,7 @@ router.use('/jobs', jobRoutes);
 router.use('/admin', adminRoutes);
 // Mount AI routes
 router.use('/ai', aiRoutes);
+router.use('/files', fileRoutes);
 
 // Temparary route to test email sending
 // router.get("/test-email", asyncHandler(async (req, res) => {

@@ -5,6 +5,11 @@ const ROLES = {
   ADMIN: 'ADMIN',
 };
 
+const VALID_JOB_STATUS = [
+  'APPLIED', 'SCREENING', 'INTERVIEW',
+  'OFFER', 'REJECTED', 'WITHDRAWN',
+];
+
 const HTTP_STATUS = {
   OK: 200,
   CREATED: 201,
@@ -87,7 +92,14 @@ const MESSAGES = {
   // Redis
   REDIS: {
     MAX_RECONNECTION_ATTEMPTS: 'Max reconnection attempts reached. Giving up.',
+  },
+
+  // File Upload
+  FILE_UPLOAD: {
+    ONLY_CSV_ALLOWED: "Only CSV files are allowed",
+    NO_VALID_ROW_IN_CSV: "No valid rows found in CSV",
+    NO_CSV_UPLOADED: 'Please upload a CSV file',
   }
 };
 
-module.exports = { HTTP_STATUS, MESSAGES, CACHE_TTL, ROLES };
+module.exports = { HTTP_STATUS, MESSAGES, CACHE_TTL, ROLES, VALID_JOB_STATUS };
