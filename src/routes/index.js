@@ -2,6 +2,7 @@ const router = require('express').Router();
 const authRoutes = require('./auth.routes');
 const jobRoutes = require('./job.routes');
 const adminRoutes = require('./admin.routes');
+const aiRoutes = require('./ai.routes');
 // const { sendWelcomeEmail } = require('../services/email.service');
 // const { asyncHandler } = require('../utils/asyncHandler');
 
@@ -11,6 +12,8 @@ router.use('/auth', authRoutes);
 router.use('/jobs', jobRoutes);
 // Mount admin routes
 router.use('/admin', adminRoutes);
+// Mount AI routes
+router.use('/ai', aiRoutes);
 
 // Temparary route to test email sending
 // router.get("/test-email", asyncHandler(async (req, res) => {

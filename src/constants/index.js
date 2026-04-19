@@ -56,7 +56,10 @@ const MESSAGES = {
   AI: {
     ANALYSIS_COMPLETE: 'Job analysis complete',
     QUESTIONS_GENERATED: 'Interview questions generated',
-    RATE_LIMIT_EXCEEDED: 'Too many AI requests, please try again later after 1 hour',
+    BULLET_IMPROVED: 'Resume bullet improved',
+    SERVICE_UNAVAILABLE: 'AI service is currently unavailable',
+    INVALID_RESPONSE_FORMAT: 'AI returned an invalid response format',
+    RATE_LIMIT_EXCEEDED: 'AI service rate limit exceeded, please try again later',
   },
 
   // Admin
