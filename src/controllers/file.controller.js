@@ -1,6 +1,6 @@
 const { asyncHandler } = require('../utils/asyncHandler');
 const ApiResponse = require('../utils/apiResponse');
-const { exportJobsToCSV, importJobsFromCSV } = require('../services/file.service');
+const { exportJobsToCSV, importJobsFromCSV, exportJobsToExcel } = require('../services/file.service');
 const { format } = require('fast-csv');
 const { HTTP_STATUS, MESSAGES } = require('../constants');
 
@@ -40,4 +40,23 @@ const importCSV = asyncHandler(async (req, res) => {
     );
 });
 
-module.exports = { exportCSV, importCSV };
+const exportExcel = asyncHandler(async (req, res) => {
+  const workbook = await exportJobsToExcel(req.user.id);
+
+  // Set headers for Excel download
+  res.setHeader(
+    'Content-Type',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="jobs-${new Date().toISOString().split('T')[0]}.xlsx"`
+  );
+
+  // Stream workbook directly to response
+  await workbook.xlsx.write(res);
+  res.end();
+});
+ 
+
+module.exports = { exportCSV, importCSV, exportExcel };
