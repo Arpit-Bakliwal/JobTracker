@@ -4,6 +4,7 @@ const ROLES = {
   USER: 'USER',
   ADMIN: 'ADMIN',
 };
+
 const HTTP_STATUS = {
   OK: 200,
   CREATED: 201,
@@ -38,8 +39,13 @@ const MESSAGES = {
     EMAIL_EXISTS: 'Email already registered',
     TOKEN_MISSING: 'Not authorized, no token',
     TOKEN_INVALID: 'Not authorized, token is invalid',
+    TOKEN_EXPIRED: 'Not authorized, token has expired',
+    TOKEN_REFRESHED: 'Token refreshed successfully',
+    REFRESH_TOKEN_MISSING: 'Refresh token is required',
+    REFRESH_TOKEN_INVALID: 'Invalid refresh token',
     USER_NOT_FOUND: 'User not found',
     RATE_LIMIT_EXCEEDED: 'Too many auth attempts, please try again later after 15 minutes',
+    LOGOUT_SUCCESS: "Logout successfully"
   },
 
   // Jobs

@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require("cookie-parser");
 const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
@@ -34,6 +35,9 @@ app.use(morgan(NODE_ENV === 'production' ? 'combined' : 'dev', { stream: morganS
 // Body parser middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Cookie parser middleware
+app.use(cookieParser());
 
 // Apply API rate limiter to all API routes
 app.use('/api/', apiLimiter);

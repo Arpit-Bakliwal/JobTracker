@@ -1,9 +1,16 @@
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const prisma = require('../config/database');
-const { generateToken } = require('../utils/jwt');
+const { generateAccessToken, generateRefreshToken } = require('../utils/jwt');
 const { HTTP_STATUS, MESSAGES } = require('../constants');
 const getEmailQueue = require("../queues/email.queue");
 const { EMAIL_JOBS } = require("../workers/email.worker");
+const logger = require('../utils/logger');
+
+// Helper - generate secure refresh token
+const generateSecureRefreshToken = () => {
+    return crypto.randomBytes(64).toString('hex');
+};
 
 const register = async ({ name, email, password }) => {
     // Check if user already exists
@@ -36,7 +43,7 @@ const register = async ({ name, email, password }) => {
     await getEmailQueue().add(EMAIL_JOBS.WELCOME, { user }, {delay: 1000}); // Send after 1 second
 
     // Generate JWT token
-    const token = generateToken({ id: user.id });
+    const token = generateAccessToken({ id: user.id });
 
     return { user, token };
 }
@@ -64,9 +71,18 @@ const login = async ({ email, password }) => {
         error.status = HTTP_STATUS.UNAUTHORIZED;
         throw error;
     }
+
+    // Generate secure refresh token
+    const refreshToken = generateSecureRefreshToken();
+
+    // Store refrsh token in database
+    await prisma.user.update({
+        where: { id: user.id },
+        data: { refreshToken },
+    });
     
     // Generate JWT token
-    const token = generateToken({ id: user.id });
+    const accessToken = generateAccessToken({ id: user.id });
     return { 
         user: {
             id: user.id,
@@ -74,12 +90,64 @@ const login = async ({ email, password }) => {
             email: user.email,
             createdAt: user.createdAt,
         }, 
-        token, 
+        accessToken,
+        refreshToken,
     };
-}
+};
+
+const refreshAccessToken = async (refreshToken) => {
+    if (!refreshToken) {
+        const error = new Error(MESSAGES.AUTH.REFRESH_TOKEN_MISSING);
+        error.status = HTTP_STATUS.UNAUTHORIZED;
+        throw error;
+    }
+
+    // Find user with this refresh token
+    const user = await prisma.user.findUnique({ 
+        where: { refreshToken },
+        select: { 
+            id: true,
+            name: true,
+            email: true,
+            role: true, 
+        },
+    });
+
+    if (!user) {
+        const error = new Error(MESSAGES.AUTH.REFRESH_TOKEN_INVALID);
+        error.status = HTTP_STATUS.UNAUTHORIZED;
+        throw error;
+    }
+
+    // Token rotation - generate new refresh token on every refresh
+    const newRefreshToken = generateSecureRefreshToken();
+    await prisma.user.update({
+        where: { id: user.id },
+        data: { refreshToken: newRefreshToken },
+    });
+
+    // Generate new access token
+    const accessToken = generateAccessToken({ id: user.id });
+
+    return {
+        user,
+        accessToken,
+        refreshToken: newRefreshToken,
+    };
+};
+
+const logout = async (userId) => {
+    // Invalidate refresh token in database
+    await prisma.user.update({
+        where: { id: userId },
+        data: { refreshToken: null },
+    });
+};
 
 module.exports = {
     register,
     login,
+    refreshAccessToken,
+    logout
 }
 

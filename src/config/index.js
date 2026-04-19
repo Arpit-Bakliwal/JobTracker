@@ -13,7 +13,8 @@ const config = {
 
     // JWT configuration
     JWT_SECRET: process.env.JWT_SECRET,
-    JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
+    JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '15m',
+    JWT_REFRESH_TOKEN_EXPIRES_IN: process.env.JWT_REFRESH_TOKEN_EXPIRES_IN || '7d',
 
     // OpenAI configuration
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,

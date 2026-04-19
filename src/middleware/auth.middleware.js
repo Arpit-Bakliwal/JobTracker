@@ -14,11 +14,19 @@ const authenticate = asyncHandler(async (req, res, next) => {
     // Extract token from header "Bearer <token>"
     const token = authHeader.split(' ')[1];
 
-    // Verify token and extract payload
-    const decoded = verifyToken(token);
-    if (!decoded || !decoded.id) {
-        const error = new Error(MESSAGES.AUTH.TOKEN_INVALID);
-        error.status = HTTP_STATUS.UNAUTHORIZED;
+    let decoded;
+    try {
+        decoded = verifyToken(token);
+    } catch (error) {
+        // Tell client to use refresh token if access token expired
+        if(error.expired){
+            return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+                success: false,
+                message: MESSAGES.AUTH.TOKEN_EXPIRED,
+                expired: true,
+                data: null,
+            });
+        }
         throw error;
     }
 
