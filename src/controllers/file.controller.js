@@ -1,6 +1,6 @@
 const { asyncHandler } = require('../utils/asyncHandler');
 const ApiResponse = require('../utils/apiResponse');
-const { exportJobsToCSV, importJobsFromCSV, exportJobsToExcel } = require('../services/file.service');
+const { exportJobsToCSV, importJobsFromCSV, exportJobsToExcel, generateJobPDF } = require('../services/file.service');
 const { format } = require('fast-csv');
 const { HTTP_STATUS, MESSAGES } = require('../constants');
 
@@ -57,6 +57,17 @@ const exportExcel = asyncHandler(async (req, res) => {
   await workbook.xlsx.write(res);
   res.end();
 });
+
+const exportPDF = asyncHandler(async (req, res) => {
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="job-report-${new Date().toISOString().split('T')[0]}.pdf"`
+  );
+
+  const doc = await generateJobPDF(req.user.id, req.user.name);
+  doc.pipe(res);
+});
  
 
-module.exports = { exportCSV, importCSV, exportExcel };
+module.exports = { exportCSV, importCSV, exportExcel, exportPDF, };

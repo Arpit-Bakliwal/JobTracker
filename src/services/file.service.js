@@ -1,6 +1,7 @@
 const { Readable } = require("stream");
 const csvParser = require('csv-parser');
 const ExcelJS = require("exceljs");
+const PDFDocument = require("pdfkit");
 const { format } = require('fast-csv');
 const prisma = require('../config/database');
 const { HTTP_STATUS, VALID_JOB_STATUS, MESSAGES } = require('../constants');
@@ -72,7 +73,7 @@ const importJobsFromCSV = async (fileBuffer, userId) => {
                     company: row.company.trim(),
                     location: row.location?.trim() || null,
                     jobUrl: row.jobUrl?.trim() || null,
-                    status: VALID_JOB_STATUS.includes(status) ? status : 'APPLIED',
+                    status: Object.values(VALID_JOB_STATUS).includes(status) ? status : 'APPLIED',
                     salary: row.salary?.trim() || null,
                     notes: row.notes?.trim() || null,
                     appliedAt: row.appliedAt ? new Date(row.appliedAt) : new Date(),
@@ -313,8 +314,261 @@ const calculateWidth = (key) => {
   return widthMap[key] || 20; // default width 20
 };
 
+const generateJobPDF = async (userId, userName) => {
+  const jobs = await prisma.job.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" }
+  });
+
+
+
+  let stats = {
+    total: jobs.length,
+    applied: 0,
+    screening: 0,
+    interview: 0,
+    offer: 0,
+    rejected: 0,
+    withdrawn: 0,
+  };
+
+  stats = jobs.reduce((acc, job) => {
+    const key = job.status.toLowerCase();
+    if(acc[key] !== undefined){
+      acc[key]++;
+    }
+    return acc;
+  }, stats );
+
+  // Success rate
+  const successRate = stats.total > 0
+    ? Math.round((stats.offer / stats.total) * 100)
+    : 0;
+
+  const doc = new PDFDocument({
+    margin: 50,
+    size: 'A4',
+  });
+
+  // ─── HEADER ───────────────────────────────────
+  // Blue header background
+  doc.rect(0, 0, doc.page.width, 120).fill('#2563EB');
+
+  // Title
+  doc
+    .fillColor('#FFFFFF')
+    .fontSize(28)
+    .font('Helvetica-Bold')
+    .text('Job Search Report', 50, 35);
+
+  // Subtitle
+  doc
+    .fontSize(12)
+    .font('Helvetica')
+    .text(`Generated for: ${userName}`, 50, 72);
+
+  doc
+    .text(
+      `Generated on: ${new Date().toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })}`,
+      50,
+      90
+    );
+
+  // ─── SUMMARY STATS ────────────────────────────
+  doc.moveDown(4);
+
+  doc
+    .fillColor('#1E293B')
+    .fontSize(16)
+    .font('Helvetica-Bold')
+    .text('Summary', 50, 145);
+
+  // Horizontal line
+  doc
+    .moveTo(50, 165)
+    .lineTo(doc.page.width - 50, 165)
+    .strokeColor('#E2E8F0')
+    .lineWidth(1)
+    .stroke();
+
+  // Stats grid — 3 columns
+  const statsData = [
+    { label: 'Total Applications', value: stats.total, color: '#2563EB' },
+    { label: 'Interviews', value: stats.interview, color: '#7C3AED' },
+    { label: 'Offers', value: stats.offer, color: '#16A34A' },
+    { label: 'Applied', value: stats.applied, color: '#D97706' },
+    { label: 'Rejected', value: stats.rejected, color: '#DC2626' },
+    { label: 'Success Rate', value: `${successRate}%`, color: '#0891B2' },
+  ];
+
+  const statBoxWidth = 160;
+  const statBoxHeight = 70;
+  const statStartY = 180;
+  const statStartX = 50;
+
+  statsData.forEach((stat, index) => {
+    const col = index % 3;
+    const row = Math.floor(index / 3);
+    const x = statStartX + col * (statBoxWidth + 15);
+    const y = statStartY + row * (statBoxHeight + 10);
+
+    // Stat box background
+    doc
+      .roundedRect(x, y, statBoxWidth, statBoxHeight, 8)
+      .fillAndStroke('#F8FAFC', '#E2E8F0');
+
+    // Stat value
+    doc
+      .fillColor(stat.color)
+      .fontSize(24)
+      .font('Helvetica-Bold')
+      .text(stat.value.toString(), x + 15, y + 12);
+
+    // Stat label
+    doc
+      .fillColor('#64748B')
+      .fontSize(10)
+      .font('Helvetica')
+      .text(stat.label, x + 15, y + 46);
+  });
+
+  // ─── JOB TABLE ────────────────────────────────
+  const tableStartY = statStartY + 2 * (statBoxHeight + 10) + 30;
+
+  doc
+    .fillColor('#1E293B')
+    .fontSize(16)
+    .font('Helvetica-Bold')
+    .text('Job Applications', 50, tableStartY);
+
+  doc
+    .moveTo(50, tableStartY + 20)
+    .lineTo(doc.page.width - 50, tableStartY + 20)
+    .strokeColor('#E2E8F0')
+    .lineWidth(1)
+    .stroke();
+
+  // Table headers
+  const tableHeaders = ['Title', 'Company', 'Status', 'Applied Date'];
+  const colWidths = [180, 150, 100, 100];
+  const colStartX = [50, 230, 380, 480];
+  const headerY = tableStartY + 30;
+
+  // Header background
+  doc
+    .rect(50, headerY - 5, doc.page.width - 100, 25)
+    .fill('#F1F5F9');
+
+  tableHeaders.forEach((header, i) => {
+    doc
+      .fillColor('#475569')
+      .fontSize(10)
+      .font('Helvetica-Bold')
+      .text(header, colStartX[i], headerY, {
+        width: colWidths[i],
+      });
+  });
+
+  // Table rows
+  const statusColors = {
+    APPLIED: '#D97706',
+    SCREENING: '#7C3AED',
+    INTERVIEW: '#2563EB',
+    OFFER: '#16A34A',
+    REJECTED: '#DC2626',
+    WITHDRAWN: '#6B7280',
+  };
+
+  let currentY = headerY + 25;
+
+  jobs.forEach((job, index) => {
+    // Add new page if needed
+    if (currentY > doc.page.height - 100) {
+      doc.addPage();
+      currentY = 50;
+    }
+
+    // Alternate row background
+    if (index % 2 === 0) {
+      doc
+        .rect(50, currentY - 3, doc.page.width - 100, 22)
+        .fill('#F8FAFC');
+    }
+
+    // Job title
+    doc
+      .fillColor('#1E293B')
+      .fontSize(9)
+      .font('Helvetica')
+      .text(
+        job.title.length > 25 ? job.title.substring(0, 25) + '...' : job.title,
+        colStartX[0],
+        currentY,
+        { width: colWidths[0] }
+      );
+
+    // Company
+    doc
+      .fillColor('#475569')
+      .text(
+        job.company.length > 20 ? job.company.substring(0, 20) + '...' : job.company,
+        colStartX[1],
+        currentY,
+        { width: colWidths[1] }
+      );
+
+    // Status with color
+    doc
+      .fillColor(statusColors[job.status] || '#000000')
+      .font('Helvetica-Bold')
+      .text(job.status, colStartX[2], currentY, { width: colWidths[2] });
+
+    // Applied date
+    doc
+      .fillColor('#475569')
+      .font('Helvetica')
+      .text(
+        job.appliedAt.toISOString().split('T')[0],
+        colStartX[3],
+        currentY,
+        { width: colWidths[3] }
+      );
+
+    currentY += 22;
+
+    // Row separator
+    doc
+      .moveTo(50, currentY - 3)
+      .lineTo(doc.page.width - 50, currentY - 3)
+      .strokeColor('#F1F5F9')
+      .lineWidth(0.5)
+      .stroke();
+  });
+
+  // ─── FOOTER ───────────────────────────────────
+  doc
+    .fillColor('#94A3B8')
+    .fontSize(8)
+    .font('Helvetica')
+    .text(
+      'Generated by Job Tracker App',
+      50,
+      doc.page.height - 40,
+      { align: 'center' }
+    );
+
+  doc.end();
+  return doc;
+
+};
+
 module.exports = {
   exportJobsToCSV,
   importJobsFromCSV,
   exportJobsToExcel,
+  generateJobPDF,
 };
