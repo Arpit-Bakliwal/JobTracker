@@ -3,14 +3,14 @@ const logger = require("../utils/logger");
 const { verifyToken } = require("../utils/jwt");
 const { ROLES } = require("../constants");
 const prisma = require('./database');
-const { NODE_ENV } = require("./index");
+const { NODE_ENV, CLIENT_URL } = require("./index");
 
 let io = null;
 
 const initSocket = (httpServer) => {
     io = new Server(httpServer, {
         cors: {
-            origin: NODE_ENV === "development" ? '*' : process.env.CLIENT_URL,
+            origin: CLIENT_URL,
             credentials: true,
         },
         // Fallback to long polling if websocket fails

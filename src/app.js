@@ -7,7 +7,7 @@ const compression = require('compression');
 const routes = require('./routes');
 const { errorMiddleware } = require('./middleware/error.middleware');
 const { apiLimiter } = require('./middleware/rateLimit.middleware');
-const { NODE_ENV } = require('./config');
+const { NODE_ENV, CLIENT_URL } = require('./config');
 const logger = require('./utils/logger');
 
 const app = express();
@@ -19,7 +19,7 @@ app.use(helmet({
 
 // CORS middleware
 app.use(cors({
-    origin: NODE_ENV === "development" ? "*" : process.env.CLIENT_URL,
+    origin: CLIENT_URL,
     credentials: true,
 }));
 
