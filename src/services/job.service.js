@@ -1,5 +1,5 @@
 const prisma = require("../config/database");
-const { HTTP_STATUS, MESSAGES, CACHE_TTL } = require("../constants");
+const { HTTP_STATUS, MESSAGES, CACHE_TTL, ROLES,  VALID_JOB_STATUS} = require("../constants");
 const { getCache, setCache, deleteCacheByPattern } = require("../config/redis");
 const getEmailQueue = require('../queues/email.queue');
 const { EMAIL_JOBS } = require('../workers/email.worker');
@@ -148,10 +148,56 @@ const deleteJob = async (jobId, userId) => {
     await deleteCacheByPattern(`jobs:${userId}:*`);
 };
 
+const getJobStats = async (userId, role) => {
+    // if Admin then all jobs else user's own job
+    const where = role === ROLES.ADMIN ? {} : { userId };
+    const [total, countByStatus, recentJobs] = await Promise.all([
+        prisma.job.count({
+            where
+        }),
+        prisma.job.groupBy({
+            by: ['status'],
+            where: where,
+            _count: { _all: true}
+        }),
+        prisma.job.findMany({
+            where,
+            orderBy: { createdAt: 'desc' },
+            take: 5,
+            select: {
+                id: true,
+                company: true,
+                title: true,
+                status: true,
+                appliedAt: true,
+                createdAt: true,
+            }
+        }),
+    ]);
+
+    let jobStats = {
+        total,
+    };
+
+    const allValidStatuses = Object.keys(VALID_JOB_STATUS);
+
+    const counts = countByStatus.reduce((acc, countState) => {
+        acc[countState.status] = countState._count._all;
+        return acc;
+    }, {});
+
+    const countWithDefault = Object.fromEntries(
+        allValidStatuses.map(s => [s, counts[s] ?? 0])
+    );
+    
+    return { ...jobStats, ...countWithDefault, recentJobs};
+}
+
 module.exports = {
     createJob,
     getJobsByUser,
     getJobById,
     updateJob,
     deleteJob,
+    getJobStats
 };

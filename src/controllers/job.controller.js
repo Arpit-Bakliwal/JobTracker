@@ -8,8 +8,8 @@ const createJob = asyncHandler(async (req, res) => {
     return ApiResponse.success(
         res,
         job,
+        MESSAGES.JOB.JOB_CREATED,
         HTTP_STATUS.CREATED,
-        MESSAGES.JOB_CREATED
     );
 });
 
@@ -53,11 +53,22 @@ const deleteJob = asyncHandler(async (req, res) => {
     );
 });
 
+const getStats = asyncHandler(async (req, res) => {
+    const results = await jobService.getJobStats(req.user.id, req.user.role);
+    return ApiResponse.success(
+        res,
+        results,
+        MESSAGES.JOB.STATS_FETCHED,
+        HTTP_STATUS.OK
+    )
+});
+
 module.exports = {
     createJob,
     getJobs,
     getJob,
     updateJob,
     deleteJob,
+    getStats,
 };
   

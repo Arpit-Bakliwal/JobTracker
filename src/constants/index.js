@@ -65,6 +65,7 @@ const MESSAGES = {
     UPDATED: 'Job updated successfully',
     DELETED: 'Job deleted successfully',
     NOT_FOUND: 'Job not found',
+    STATS_FETCHED: 'Job stats fetched successfully',
   },
 
   // AI
