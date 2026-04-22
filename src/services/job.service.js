@@ -113,7 +113,7 @@ const updateJob = async (jobId, data, userId) => {
     if (data.status && data.status !== existingJob.status) {
         const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true, email: true } });
 
-        await getEmailQueue().add(EMAIL_JOBS.JOB_STATUS, { user, updateJob });
+        await getEmailQueue().add(EMAIL_JOBS.JOB_STATUS, { user, job: updatedJob });
 
         // Real time notification to admin
         try {

@@ -23,7 +23,7 @@ const initEmailWorker = () => {
     'email',
     async (job) => {
       console.log(`Processing email job: ${job.name}`);
-
+      console.log("Job", JSON.stringify(job));
       switch (job.name) {
         case EMAIL_JOBS.WELCOME:
           await sendWelcomeEmail(job.data.user);

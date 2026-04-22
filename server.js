@@ -7,7 +7,7 @@ const prisma = require('./src/config/database');
 const { verifyEmailConnection } = require("./src/services/email.service");
 const { initEmailWorker, getEmailWorker } = require('./src/workers/email.worker');
 const { startScheduler } = require('./src/queues/scheduler');
-const { initSocket } = require("./src/config/socket");
+const { initSocket, getIO } = require("./src/config/socket");
 const logger = require('./src/utils/logger');
 
 const startServer = async () => {
@@ -55,28 +55,54 @@ const startServer = async () => {
     // Graceful Shutdown
     process.on('SIGINT', async () => {
         logger.info("Shutting down gracefully...");
+        // Close socket.io first - disconnect all socket clients
+        const io = getIO();
+        io.close();
+
+        // Close EMail Worker
         const emailWorker = getEmailWorker();
         if (emailWorker) {
             await emailWorker.close(); // Stop accepting new jobs and finish processing current ones
         }
         await prisma.$disconnect();
         await redisClient.quit();
+
+        // Force exit after 3 seconds if httpServer.close() hangs
+        const forceExit = setTimeout(() => {
+            logger.warn("Forcing exit after timeout")
+            process.exit(0)
+        }, 3000);
+
         httpServer.close(() => {
             logger.info("Server closed. Goodbye!");
+            clearTimeout(forceExit);
             process.exit(0);
         });
     });
 
     process.on('SIGTERM', async () => {
         logger.info("Shutting down gracefully...");
+         // Close socket.io first - disconnect all socket clients
+        const io = getIO();
+        io.close();
+
+        // Close EMail Worker
         const emailWorker = getEmailWorker();
         if (emailWorker) {
             await emailWorker.close(); // Stop accepting new jobs and finish processing current ones
         }
         await prisma.$disconnect();
         await redisClient.quit();
+
+        // Force exit after 3 seconds if httpServer.close() hangs
+        const forceExit = setTimeout(() => {
+            logger.warn("Forcing exit after timeout")
+            process.exit(0)
+        }, 3000);
+
         httpServer.close(() => {
             logger.info("Server closed. Goodbye!");
+            clearTimeout(forceExit);
             process.exit(0);
         });
     });
