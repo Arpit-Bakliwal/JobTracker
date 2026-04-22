@@ -52,60 +52,45 @@ const startServer = async () => {
     // Start the scheduler for periodic tasks
     startScheduler();
 
+    let isShuttingDown = false;
+
+    const gracefulShutdown = async (signal) => {
+        if (isShuttingDown) return;
+        isShuttingDown = true;
+
+        logger.info(`Received ${signal}. Shutting down gracefully...`);
+
+        const forceExit = setTimeout(() => {
+            logger.warn("Forcing exit after timeout");
+            process.exit(1);
+        }, 10000);
+
+        try {
+            const io = getIO();
+            io.close();
+
+            const emailWorker = getEmailWorker();
+            if (emailWorker) await emailWorker.close();
+
+            await prisma.$disconnect();
+            await redisClient.quit();
+
+            httpServer.close(() => {
+                logger.info("Server closed. Goodbye!");
+                clearTimeout(forceExit);
+                process.exit(0);
+            });
+
+        } catch (err) {
+            logger.error("Error during shutdown:", err);
+            process.exit(1);
+        }
+    };
+
     // Graceful Shutdown
-    process.on('SIGINT', async () => {
-        logger.info("Shutting down gracefully...");
-        // Close socket.io first - disconnect all socket clients
-        const io = getIO();
-        io.close();
+    process.on('SIGINT', gracefulShutdown);
 
-        // Close EMail Worker
-        const emailWorker = getEmailWorker();
-        if (emailWorker) {
-            await emailWorker.close(); // Stop accepting new jobs and finish processing current ones
-        }
-        await prisma.$disconnect();
-        await redisClient.quit();
-
-        // Force exit after 3 seconds if httpServer.close() hangs
-        const forceExit = setTimeout(() => {
-            logger.warn("Forcing exit after timeout")
-            process.exit(0)
-        }, 3000);
-
-        httpServer.close(() => {
-            logger.info("Server closed. Goodbye!");
-            clearTimeout(forceExit);
-            process.exit(0);
-        });
-    });
-
-    process.on('SIGTERM', async () => {
-        logger.info("Shutting down gracefully...");
-         // Close socket.io first - disconnect all socket clients
-        const io = getIO();
-        io.close();
-
-        // Close EMail Worker
-        const emailWorker = getEmailWorker();
-        if (emailWorker) {
-            await emailWorker.close(); // Stop accepting new jobs and finish processing current ones
-        }
-        await prisma.$disconnect();
-        await redisClient.quit();
-
-        // Force exit after 3 seconds if httpServer.close() hangs
-        const forceExit = setTimeout(() => {
-            logger.warn("Forcing exit after timeout")
-            process.exit(0)
-        }, 3000);
-
-        httpServer.close(() => {
-            logger.info("Server closed. Goodbye!");
-            clearTimeout(forceExit);
-            process.exit(0);
-        });
-    });
+    process.on('SIGTERM', gracefulShutdown);
 };
 
 startServer();
