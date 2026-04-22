@@ -21,7 +21,7 @@ const updateUserRole = asyncHandler(async (req, res) => {
 
 const deleteUser = asyncHandler(async (req, res) => {
     await adminService.deleteUser(req.params.id, req.user.id);
-    return ApiResponse.success(res, null, MESSAGES.ADMIN.USER_DELETED, HTTP_STATUS.OK);
+    return ApiResponse.success(res, req.params.id, MESSAGES.ADMIN.USER_DELETED, HTTP_STATUS.OK);
 });
 
 module.exports = {

@@ -18,7 +18,7 @@ const registerUser = asyncHandler(async (req, res) => {
         res,
         {
             user: result.user,
-            accessToken: result.accessToken,
+            accessToken: result.token,
         },
         MESSAGES.AUTH.REGISTER_SUCCESS,
         HTTP_STATUS.CREATED
