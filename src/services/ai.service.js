@@ -88,7 +88,7 @@ const generateInterviewQuestions = async (jobTitle, userSkills) => {
                     role: "user",
                     content: `
                                 Job Title: ${jobTitle}
-                                Skills to focus on: ${skills}
+                                Skills to focus on: ${userSkills}
 
                                 Generate 5 interview questions.
 
@@ -134,7 +134,7 @@ const improveResumeBullet = async (bulletPoint, jobTitle) => {
                     role: "user",
                     content: `
                         Target Job Title: ${jobTitle}
-                        Original Bullet: ${bullet}
+                        Original Bullet: ${bulletPoint}
 
                         Improve this bullet point using the STAR format where possible.
                         Make it quantifiable, action oriented and ATS friendly.

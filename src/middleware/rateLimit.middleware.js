@@ -6,20 +6,47 @@ const { success } = require('../utils/apiResponse');
 // Create a sliding window rate limiter using Redis
 const createRateLimiter = (limit, windowSeconds, message) => {
     return async (req, res, next) => {
-        const key = `rate_limit:${req.ip}:${req.path}`;
+        const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.ip;
+        const key = `rate_limit:${ip}:${req.path}`;
 
         try {
             const now = Date.now();
             const windowStart = now - (windowSeconds * 1000);
+
+            const multi = redisClient.multi();
             
             // Remove timestamps that are outside the current window
-            await redisClient.zRemRangeByScore(key, '-inf', windowStart);
+            multi.zRemRangeByScore(key, '-inf', windowStart);
             // Get the current count of requests in the window
-            const requestCount = await redisClient.zCard(key);
+            multi.zCard(key);
+
+            multi.zRange(key, 0, 0, { WITHSCORES: true });
+
+            // Add the current request timestamp to the sorted set
+            multi.zAdd(key, [
+                {
+                    score: now,
+                    value: `req:${now}:${Math.random().toString(36).substr(2, 9)}`,
+                },
+            ]);
+
+            // Set an expiration for the key to automatically clean up old entries
+            multi.expire(key, windowSeconds+1);
+
+            const results = await multi.exec();
+
+            const requestCount = results[1];
+            const oldest = results[2];
+            
+            let resetTime = windowSeconds;
+            if (oldest.length) {
+                const oldestTimestamp = parseInt(oldest[1]);
+                resetTime = Math.ceil((oldestTimestamp + windowSeconds * 1000 - now) / 1000);
+            }
 
             res.setHeader('X-RateLimit-Limit', limit);
             res.setHeader('X-RateLimit-Remaining', Math.max(limit - requestCount, 0));
-            res.setHeader('X-RateLimit-Reset', Math.ceil(windowSeconds));
+            res.setHeader('X-RateLimit-Reset', Math.max(resetTime,0));
 
             if (requestCount >= limit) {
                 return res.status(HTTP_STATUS.TOO_MANY_REQUESTS).json({
@@ -28,17 +55,6 @@ const createRateLimiter = (limit, windowSeconds, message) => {
                     data: null
                 });
             }
-
-            // Add the current request timestamp to the sorted set
-            await redisClient.zAdd(key, [
-                {
-                    score: now,
-                    value: `req:${now}:${Math.random().toString(36).substr(2, 9)}`,
-                },
-            ]);
-        
-            // Set an expiration for the key to automatically clean up old entries
-            await redisClient.expire(key, windowSeconds);
             next();
         } catch (error) {
             console.error('Error in rate limiter:', error.message);
