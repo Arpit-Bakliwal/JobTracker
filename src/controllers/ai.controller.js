@@ -1,5 +1,5 @@
 const { asyncHandler } = require('../utils/asyncHandler');
-const ApiResponse = require('../utils/ApiResponse');
+const ApiResponse = require('../utils/apiResponse');
 const aiService = require('../services/ai.service');
 const { HTTP_STATUS, MESSAGES } = require('../constants');
 

@@ -1,5 +1,5 @@
 const { asyncHandler } = require('../utils/asyncHandler');
-const ApiResponse = require('../utils/ApiResponse');
+const ApiResponse = require('../utils/apiResponse');
 const jobService = require('../services/job.service');
 const { HTTP_STATUS, MESSAGES } = require('../constants');
 
