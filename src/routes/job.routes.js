@@ -9,11 +9,13 @@ const {
     updateJob,
     deleteJob,
     getStats,
-    getPublicJobs
+    getPublicJobs,
+    getPublicJobById,
 } = require('../controllers/job.controller');
 
 // Public routes
 router.get('/public', getPublicJobs);
+router.get('/public/:id', getPublicJobById);
 
 // All routes are authenticated
 router.use(authenticate);

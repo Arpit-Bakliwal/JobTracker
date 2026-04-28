@@ -76,6 +76,16 @@ const getPublicJobs = asyncHandler(async (req, res) => {
     return ApiResponse.success(res, jobs, 'Jobs fetched successfully', HTTP_STATUS.OK);
 });
 
+const getPublicJobById = asyncHandler(async (req, res) => {
+    const job = await jobService.getPublicJobById(req.params.id);
+    return ApiResponse.success(
+        res,
+        job,
+        "Job fetched successfully",
+        HTTP_STATUS.OK
+    );
+});
+
 module.exports = {
     createJob,
     getJobs,
@@ -83,6 +93,7 @@ module.exports = {
     updateJob,
     deleteJob,
     getStats,
-    getPublicJobs
+    getPublicJobs,
+    getPublicJobById,
 };
   

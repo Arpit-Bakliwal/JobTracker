@@ -236,6 +236,26 @@ const getPublicJobs = async ({ page, limit, status, search }) => {
     };
 };
 
+const getPublicJobById = async (jobId) => {
+    const job = await prisma.job.findUnique({
+        where: { id: jobId},
+        select: {
+            id: true,
+            title: true,
+            company: true,
+            location: true,
+            salary: true,
+            status: true,
+            jobUrl: true,
+            notes: true,
+            appliedAt: true,
+            createdAt: true,
+        }
+    });
+
+    return job;
+};
+
 module.exports = {
     createJob,
     getJobsByUser,
@@ -243,5 +263,6 @@ module.exports = {
     updateJob,
     deleteJob,
     getJobStats,
-    getPublicJobs
+    getPublicJobs,
+    getPublicJobById,
 };
