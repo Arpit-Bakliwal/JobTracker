@@ -191,7 +191,50 @@ const getJobStats = async (userId, role) => {
     );
     
     return { ...jobStats, ...countWithDefault, recentJobs};
-}
+};
+
+const getPublicJobs = async ({ page, limit, status, search }) => {
+    const skip = (page - 1) * limit
+
+    const where = {
+        ...(status && { status }),
+        ...(search && {
+            OR: [
+                { title: { contains: search, mode: 'insensitive' } },
+                { company: { contains: search, mode: 'insensitive' } },
+            ]
+        })
+    };
+
+    const [jobs, total] = await Promise.all([
+        prisma.job.findMany({
+            where,
+            skip,
+            take: limit,
+            orderBy: { createdAt: 'desc' },
+            select: {
+                id: true,
+                title: true,
+                company: true,
+                location: true,
+                salary: true,
+                status: true,
+                jobUrl: true,
+                appliedAt: true,
+                createdAt: true,
+                // no userId, no notes — safe for public
+            }
+        }),
+        prisma.job.count({ where })
+    ]);
+
+    return {
+        jobs,
+        totalCount: total,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+    };
+};
 
 module.exports = {
     createJob,
@@ -199,5 +242,6 @@ module.exports = {
     getJobById,
     updateJob,
     deleteJob,
-    getJobStats
+    getJobStats,
+    getPublicJobs
 };
